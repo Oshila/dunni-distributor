@@ -3,24 +3,27 @@
 import { motion } from 'framer-motion';
 import { Plus, Minus } from 'lucide-react';
 import { useState } from 'react';
-import { useCart } from '@/app/providers/CartProvider';
+import { useCart } from '@/app/hooks/useCart';
 
 interface ProductCardProps {
-  name: string;
-  description: string;
-  emoji: string;
-  image?: string;
-  sizes: { id: string; label: string; price: number }[];
+  product: {
+    id: string;
+    name: string;
+    description: string;
+    emoji: string;
+    image?: string;
+    sizes: { id: string; label: string; price: number }[];
+  };
   index?: number;
 }
 
-export const ProductCard = ({ name, description, emoji, image, sizes, index = 0 }: ProductCardProps) => {
-  const [selectedSize, setSelectedSize] = useState(sizes[0]);
+export const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
+  const [selectedSize, setSelectedSize] = useState(product.sizes[0]);
   const [quantity, setQuantity] = useState(0);
   const { addItem } = useCart();
   
   const handleAdd = () => {
-    addItem(name, selectedSize.label, selectedSize.price, emoji);
+    addItem(product.id, selectedSize.id);
     setQuantity(prev => prev + 1);
   };
   
@@ -39,12 +42,11 @@ export const ProductCard = ({ name, description, emoji, image, sizes, index = 0 
       whileHover={{ y: -8 }}
       className="group bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-pink-100"
     >
-      {/* Product Image */}
       <div className="relative h-56 bg-gradient-to-br from-pink-50 to-pink-100 overflow-hidden">
-        {image ? (
+        {product.image ? (
           <img 
-            src={image}
-            alt={name}
+            src={product.image}
+            alt={product.name}
             className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-110"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -52,7 +54,7 @@ export const ProductCard = ({ name, description, emoji, image, sizes, index = 0 
           />
         ) : null}
         <div className="absolute inset-0 flex items-center justify-center text-7xl opacity-10 pointer-events-none">
-          {emoji}
+          {product.emoji}
         </div>
         
         <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
@@ -61,7 +63,7 @@ export const ProductCard = ({ name, description, emoji, image, sizes, index = 0 
               {selectedSize.label}
             </span>
             <span className="text-white text-sm font-semibold bg-pink-500/80 backdrop-blur-sm px-3 py-1 rounded-full">
-              {name}
+              {product.name}
             </span>
           </div>
         </div>
@@ -73,14 +75,14 @@ export const ProductCard = ({ name, description, emoji, image, sizes, index = 0 
       
       <div className="p-5">
         <h3 className="text-lg font-bold text-gray-800 group-hover:text-pink-500 transition-colors">
-          {name}
+          {product.name}
         </h3>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-          {description}
+          {product.description}
         </p>
         
         <div className="flex gap-2 mt-4 flex-wrap">
-          {sizes.map(size => (
+          {product.sizes.map(size => (
             <button
               key={size.id}
               onClick={() => setSelectedSize(size)}

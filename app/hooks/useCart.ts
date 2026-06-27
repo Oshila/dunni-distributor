@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { toppings, sizes } from '@/app/data/products';
+import { products, sizes } from '@/app/data/products';
 
 export interface CartItem {
   id: string;
@@ -11,14 +11,12 @@ export interface CartItem {
   size: string;
   price: number;
   quantity: number;
-  icon: string;
+  emoji: string;
 }
 
 export const useCart = () => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  
-  console.log('useCart - isOpen:', isOpen); // Debug
   
   useEffect(() => {
     const saved = localStorage.getItem('cart');
@@ -36,11 +34,11 @@ export const useCart = () => {
   }, [items]);
   
   const addItem = (toppingId: string, sizeId: string) => {
-    const topping = toppings.find(t => t.id === toppingId);
+    const product = products.find(p => p.id === toppingId);
     const size = sizes.find(s => s.id === sizeId);
     
-    if (!topping || !size) {
-      console.error('Topping or size not found:', toppingId, sizeId);
+    if (!product || !size) {
+      console.error('Product or size not found:', toppingId, sizeId);
       return;
     }
     
@@ -57,21 +55,20 @@ export const useCart = () => {
         );
       }
       
-      const newItem = {
+      const newItem: CartItem = {
         id: itemId,
         toppingId,
         sizeId,
-        name: topping.name,
+        name: product.name,
         size: size.label,
         price: price,
         quantity: 1,
-        icon: topping.emoji
+        emoji: product.emoji
       };
       
       return [...prev, newItem];
     });
     
-    console.log('Opening cart from addItem');
     setIsOpen(true);
   };
   
