@@ -9,7 +9,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [searched, setSearched] = useState(false);
 
@@ -43,19 +43,19 @@ export default function MyOrdersPage() {
           
           {/* Search by Email */}
           <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100 mb-6">
-            <p className="text-gray-600 mb-4">Enter your email to see your orders:</p>
+            <p className="text-gray-700 font-medium mb-4">Enter your email to see your orders:</p>
             <form onSubmit={searchOrders} className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
-                placeholder="Your email address"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:outline-none transition-colors"
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                 required
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors"
+                className="px-6 py-3 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors whitespace-nowrap"
               >
                 Find Orders
               </button>
@@ -73,13 +73,13 @@ export default function MyOrdersPage() {
                 <p className="text-gray-500">Loading orders...</p>
               ) : orders.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No orders found for this email</p>
-                  <p className="text-sm text-gray-400 mt-1">Make sure you used the same email when ordering</p>
+                  <p className="text-gray-600">No orders found for this email</p>
+                  <p className="text-sm text-gray-500 mt-1">Make sure you used the same email when ordering</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {orders.map((order) => (
-                    <div key={order.id} className="border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-shadow">
+                    <div key={order.id} className="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow">
                       <div className="flex flex-wrap justify-between items-start gap-2">
                         <div>
                           <Link href={`/order/${order.orderNumber}`} className="font-bold text-pink-500 hover:underline">
@@ -106,7 +106,7 @@ export default function MyOrdersPage() {
                       </div>
                       <Link
                         href={`/order/${order.orderNumber}`}
-                        className="inline-block mt-3 text-sm text-pink-500 hover:text-pink-600 transition-colors"
+                        className="inline-block mt-3 text-sm text-pink-500 hover:text-pink-600 transition-colors font-medium"
                       >
                         🔍 View Order →
                       </Link>
