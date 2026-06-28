@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/app/components/Header';
 import { Footer } from '@/app/components/Footer';
@@ -10,26 +10,75 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState('');
 
   const searchOrders = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!searchTerm.trim()) {
+      setError('Please enter an order number or email');
+      return;
+    }
     
+    setError('');
     setLoading(true);
     setSearched(true);
     
     try {
-      const q = query(collection(db, 'orders'), where('customer.email', '==', email));
-      const querySnapshot = await getDocs(q);
-      const ordersList: any[] = [];
-      querySnapshot.forEach((doc) => {
-        ordersList.push({ id: doc.id, ...doc.data() });
-      });
+      const searchValue = searchTerm.trim();
+      const searchLower = searchValue.toLowerCase();
+      let ordersList: any[] = [];
+      
+      // Check if it looks like an order number (starts with JOI- or joi-)
+      if (searchLower.startsWith('joi-')) {
+        // Search by order number - case insensitive
+        // Since Firestore doesn't support case-insensitive string comparison,
+        // we need to fetch all orders and filter client-side
+        const q = query(collection(db, 'orders'));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.orderNumber && data.orderNumber.toLowerCase() === searchLower) {
+            ordersList.push({ id: doc.id, ...data });
+          }
+        });
+      } else {
+        // Search by email - try exact match first, then fallback
+        let q = query(collection(db, 'orders'), where('customer.email', '==', searchValue));
+        let querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          // Try case insensitive by fetching all and filtering
+          const allQuery = query(collection(db, 'orders'));
+          const allSnapshot = await getDocs(allQuery);
+          allSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const email = data.customer?.email || '';
+            if (email.toLowerCase() === searchLower) {
+              ordersList.push({ id: doc.id, ...data });
+            }
+          });
+        } else {
+          querySnapshot.forEach((doc) => {
+            ordersList.push({ id: doc.id, ...doc.data() });
+          });
+        }
+        
+        // If still no results, try searching by phone
+        if (ordersList.length === 0) {
+          const phoneQuery = query(collection(db, 'orders'), where('customer.phone', '==', searchValue));
+          const phoneSnapshot = await getDocs(phoneQuery);
+          phoneSnapshot.forEach((doc) => {
+            ordersList.push({ id: doc.id, ...doc.data() });
+          });
+        }
+      }
+      
       setOrders(ordersList);
     } catch (error) {
       console.error('Error fetching orders:', error);
+      setError('Failed to search orders. Please try again.');
     }
     setLoading(false);
   };
@@ -41,15 +90,14 @@ export default function MyOrdersPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-6">My Orders</h1>
           
-          {/* Search by Email */}
           <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100 mb-6">
-            <p className="text-gray-700 font-medium mb-4">Enter your email to see your orders:</p>
+            <p className="text-gray-700 font-medium mb-4">Find your orders:</p>
             <form onSubmit={searchOrders} className="flex flex-col sm:flex-row gap-3">
               <input
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter order number (JOI-XXXX) or email"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                 required
               />
@@ -60,9 +108,14 @@ export default function MyOrdersPage() {
                 Find Orders
               </button>
             </form>
+            {error && (
+              <p className="text-red-500 text-sm mt-2">{error}</p>
+            )}
+            <p className="text-xs text-gray-400 mt-2">
+              💡 Search by Order Number (e.g., JOI-1234 or joi-1234) or your email address
+            </p>
           </div>
 
-          {/* Orders List */}
           {searched && (
             <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100">
               <h2 className="font-semibold text-gray-700 mb-4">
@@ -73,8 +126,10 @@ export default function MyOrdersPage() {
                 <p className="text-gray-500">Loading orders...</p>
               ) : orders.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">No orders found for this email</p>
-                  <p className="text-sm text-gray-500 mt-1">Make sure you used the same email when ordering</p>
+                  <p className="text-gray-600">No orders found</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Check your order number or email and try again
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
