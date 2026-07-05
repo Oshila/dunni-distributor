@@ -31,7 +31,7 @@ export const Header = () => {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                <span className="text-gradient">Dunni</span>
+                <span className="text-gradient">Dunni Store</span>
               </h1>
             </div>
           </Link>
