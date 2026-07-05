@@ -1,5 +1,14 @@
 import { db } from '@/app/lib/firebase';
-import { collection, addDoc, getDocs, query, orderBy, doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  orderBy, 
+  doc, 
+  updateDoc,
+  Timestamp 
+} from 'firebase/firestore';
 
 export interface Order {
   id?: string;
@@ -31,30 +40,32 @@ export const saveOrder = async (orderData: Omit<Order, 'id' | 'createdAt'>) => {
       createdAt: Timestamp.now()
     });
     return { success: true, id: docRef.id };
-  } catch (error) {
-    return { success: false, error };
+  } catch (error: any) {
+    console.error('Error saving order:', error);
+    return { success: false, error: error.message };
   }
 };
 
 export const getOrders = async () => {
   try {
     const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
+    const querySnapshot = await getDocs(q);
     const orders: Order[] = [];
-    snapshot.forEach((doc) => {
+    querySnapshot.forEach((doc) => {
       orders.push({ id: doc.id, ...doc.data() } as Order);
     });
     return { success: true, orders };
-  } catch (error) {
-    return { success: false, orders: [], error };
+  } catch (error: any) {
+    return { success: false, orders: [], error: error.message };
   }
 };
 
 export const updateOrderStatus = async (orderId: string, status: string) => {
   try {
-    await updateDoc(doc(db, 'orders', orderId), { status });
+    const orderRef = doc(db, 'orders', orderId);
+    await updateDoc(orderRef, { status });
     return { success: true };
-  } catch (error) {
-    return { success: false, error };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 };
