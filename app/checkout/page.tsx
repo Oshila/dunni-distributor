@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/app/providers/CartProvider';
-import { saveOrder } from '@/app/services/orderService';
+import { db } from '@/app/lib/firebase';
+import { collection, addDoc, Timestamp } from 'firebase/firestore';
 import { Header } from '@/app/components/Header';
 import { Footer } from '@/app/components/Footer';
 import { User, Phone, MapPin, Mail, ArrowLeft, CheckCircle, Package, Truck, Clock } from 'lucide-react';
@@ -45,10 +46,22 @@ export default function CheckoutPage() {
     });
   };
 
+  const saveOrderToFirebase = async (orderData: any) => {
+    try {
+      const docRef = await addDoc(collection(db, 'orders'), {
+        ...orderData,
+        createdAt: Timestamp.now()
+      });
+      return { success: true, id: docRef.id };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
   const handlePaymentSuccess = async (response: any) => {
     console.log('Payment successful:', response);
     
-    const orderNum = `JOI-${Date.now().toString().slice(-4)}`;
+    const orderNum = `DUN-${Date.now().toString().slice(-4)}`;
     setOrderNumber(orderNum);
     setPaymentReference(response.reference || 'N/A');
     
@@ -65,7 +78,7 @@ export default function CheckoutPage() {
         size: item.size,
         quantity: item.quantity,
         price: item.price,
-        emoji: item.emoji
+        emoji: item.emoji || '👗'
       })),
       total: total,
       paymentReference: response.reference || 'N/A',
@@ -75,7 +88,7 @@ export default function CheckoutPage() {
 
     try {
       console.log('Saving order to Firestore...');
-      const result = await saveOrder(orderData);
+      const result = await saveOrderToFirebase(orderData);
       console.log('Save result:', result);
       
       if (result.success) {
@@ -151,7 +164,7 @@ export default function CheckoutPage() {
         email: formData.email,
         amount: total * 100,
         currency: 'NGN',
-        ref: `JOI-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        ref: `DUN-${Date.now()}`,
         metadata: {
           custom_fields: [
             {
@@ -190,14 +203,14 @@ export default function CheckoutPage() {
     }
   };
 
-  // Success page
+  // 🎉 SUCCESS PAGE
   if (paymentSuccess) {
     return (
       <>
         <Header />
-        <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-pink-50 to-white">
+        <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-rose-50 to-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-2xl border border-pink-100">
+            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-2xl border border-rose-100">
               <div className="text-center mb-8">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle size={40} className="text-green-500" />
@@ -206,11 +219,11 @@ export default function CheckoutPage() {
                 <p className="text-gray-500 mt-2">Thank you for your order</p>
               </div>
 
-              <div className="bg-pink-50 rounded-2xl p-6 mb-6">
+              <div className="bg-rose-50 rounded-2xl p-6 mb-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Order Number</p>
-                    <p className="text-2xl font-bold text-pink-500">{orderNumber}</p>
+                    <p className="text-2xl font-bold text-rose-500">{orderNumber}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Payment Reference</p>
@@ -233,60 +246,26 @@ export default function CheckoutPage() {
                       navigator.clipboard.writeText(`${window.location.origin}/order/${orderNumber}`);
                       alert('✅ Link copied to clipboard!');
                     }}
-                    className="px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition-colors text-sm font-medium"
                   >
                     Copy Link
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">💡 Bookmark this link to check your order status anytime</p>
               </div>
 
-              <div className="mb-6">
-                <h3 className="font-semibold text-gray-700 mb-4">Order Status</h3>
-                <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                      <CheckCircle size={16} className="text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">Order Placed</span>
-                  </div>
-                  <div className="w-12 h-0.5 bg-gray-300 flex-shrink-0" />
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <Package size={16} className="text-gray-500" />
-                    </div>
-                    <span className="text-sm text-gray-400">Processing</span>
-                  </div>
-                  <div className="w-12 h-0.5 bg-gray-300 flex-shrink-0" />
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <Truck size={16} className="text-gray-500" />
-                    </div>
-                    <span className="text-sm text-gray-400">Delivery</span>
-                  </div>
-                  <div className="w-12 h-0.5 bg-gray-300 flex-shrink-0" />
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                      <Clock size={16} className="text-gray-500" />
-                    </div>
-                    <span className="text-sm text-gray-400">Completed</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-pink-100 pt-6 mb-6">
+              <div className="border-t border-rose-100 pt-6 mb-6">
                 <h3 className="font-semibold text-gray-700 mb-3">Order Items</h3>
                 <div className="space-y-2">
                   {items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm py-1 border-b border-pink-50">
-                      <span className="text-gray-700">{item.emoji} {item.name} ({item.size}) ×{item.quantity}</span>
+                    <div key={item.id} className="flex justify-between text-sm py-1 border-b border-rose-50">
+                      <span className="text-gray-700">{item.emoji || '👗'} {item.name} ({item.size}) ×{item.quantity}</span>
                       <span className="font-medium text-gray-700">₦{(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between font-bold text-lg pt-3 border-t border-pink-100 mt-3">
+                <div className="flex justify-between font-bold text-lg pt-3 border-t border-rose-100 mt-3">
                   <span className="text-gray-800">Total</span>
-                  <span className="text-pink-500">₦{total.toLocaleString()}</span>
+                  <span className="text-rose-500">₦{total.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -305,7 +284,7 @@ export default function CheckoutPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
                   href={`/order/${orderNumber}`}
-                  className="flex-1 py-3 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors text-center"
+                  className="flex-1 py-3 bg-rose-500 text-white font-semibold rounded-xl hover:bg-rose-600 transition-colors text-center"
                 >
                   🔍 Track Order
                 </Link>
@@ -338,36 +317,38 @@ export default function CheckoutPage() {
   return (
     <>
       <Header />
-      <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-rose-50 to-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-pink-500 hover:text-pink-600 transition-colors mb-6">
+          <Link href="/" className="inline-flex items-center gap-2 text-rose-500 hover:text-rose-600 transition-colors mb-6">
             <ArrowLeft size={20} />
             Back to Menu
           </Link>
           
           <div className="grid md:grid-cols-3 gap-6">
+            {/* Order Summary */}
             <div className="md:col-span-1">
-              <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100 sticky top-24">
+              <div className="bg-white rounded-3xl p-6 shadow-md border border-rose-100 sticky top-24">
                 <h3 className="font-bold text-gray-800 mb-4">Order Summary</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm py-1 border-b border-pink-50">
-                      <span className="text-gray-700">{item.emoji} {item.name} ×{item.quantity}</span>
+                    <div key={item.id} className="flex justify-between text-sm py-1 border-b border-rose-50">
+                      <span className="text-gray-700">{item.emoji || '👗'} {item.name} ×{item.quantity}</span>
                       <span className="font-medium text-gray-700">₦{(item.price * item.quantity).toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
-                <div className="border-t border-pink-100 mt-3 pt-3">
+                <div className="border-t border-rose-100 mt-3 pt-3">
                   <div className="flex justify-between font-bold text-lg">
                     <span className="text-gray-800">Total</span>
-                    <span className="text-pink-500">₦{total.toLocaleString()}</span>
+                    <span className="text-rose-500">₦{total.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
             </div>
             
+            {/* Checkout Form */}
             <div className="md:col-span-2">
-              <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100">
+              <div className="bg-white rounded-3xl p-6 shadow-md border border-rose-100">
                 <h2 className="text-2xl font-bold text-gray-800 mb-6">Checkout</h2>
                 
                 <div className="space-y-4">
@@ -385,7 +366,7 @@ export default function CheckoutPage() {
                       placeholder="Full name *"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-600"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                       required
                     />
                   </div>
@@ -398,7 +379,7 @@ export default function CheckoutPage() {
                       placeholder="Phone number *"
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-600"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                       required
                     />
                   </div>
@@ -411,7 +392,7 @@ export default function CheckoutPage() {
                       placeholder="Email address *"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-600"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                       required
                     />
                   </div>
@@ -424,7 +405,7 @@ export default function CheckoutPage() {
                       placeholder="Delivery address *"
                       value={formData.address}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-600"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                       required
                     />
                   </div>
@@ -436,14 +417,14 @@ export default function CheckoutPage() {
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={2}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-600 resize-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500 resize-none"
                     />
                   </div>
 
                   <button
                     onClick={handlePaystackPayment}
                     disabled={!formData.name || !formData.phone || !formData.email || !formData.address || loading}
-                    className="w-full py-4 bg-gradient-to-r from-pink-400 to-rose-400 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 bg-gradient-to-r from-rose-400 to-pink-500 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <span className="flex items-center justify-center gap-2">
