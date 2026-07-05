@@ -9,20 +9,36 @@ interface ProductCardProps {
   id: string;
   name: string;
   description: string;
-  emoji: string;
-  image?: string;
-  sizes: { id: string; label: string; price: number }[];
+  image: string;
+  price: number;
+  sizes?: string[];  // Make optional with default
+  colors?: string[];
   index?: number;
 }
 
-export const ProductCard = ({ id, name, description, emoji, image, sizes, index = 0 }: ProductCardProps) => {
-  const [selectedSize, setSelectedSize] = useState(sizes[0]);
+export const ProductCard = ({ 
+  id, 
+  name, 
+  description, 
+  image, 
+  price, 
+  sizes = ['M'],  // Default sizes if none provided
+  colors, 
+  index = 0 
+}: ProductCardProps) => {
+  const [selectedSize, setSelectedSize] = useState(sizes?.[0] || 'M');
   const { addItem } = useCart();
 
   const handleAdd = () => {
-    addItem(name, selectedSize.label, selectedSize.price, emoji);
-    // You'll see the count update in the cart
+    addItem(name, selectedSize, price || 0, '👗');
   };
+
+  // Handle missing data
+  const displayPrice = price || 0;
+  const displayName = name || 'Unnamed Product';
+  const displayDescription = description || 'No description available';
+  const displayImage = image || '/images/placeholder.jpg';
+  const displaySizes = Array.isArray(sizes) && sizes.length > 0 ? sizes : ['M'];
 
   return (
     <motion.div
@@ -31,71 +47,51 @@ export const ProductCard = ({ id, name, description, emoji, image, sizes, index 
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
       whileHover={{ y: -8 }}
-      className="group bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-pink-100"
+      className="group bg-white rounded-3xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-rose-100"
     >
-      <div className="relative h-56 bg-gradient-to-br from-pink-50 to-pink-100 overflow-hidden">
-        {image ? (
-          <img 
-            src={image}
-            alt={name}
-            className="w-full h-full object-contain p-4 transition-transform duration-300 group-hover:scale-110"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        ) : null}
-        <div className="absolute inset-0 flex items-center justify-center text-7xl opacity-10 pointer-events-none">
-          {emoji}
-        </div>
-        
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/50 to-transparent">
-          <div className="flex items-center gap-2">
-            <span className="text-white text-sm font-semibold bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full">
-              {selectedSize.label}
-            </span>
-            <span className="text-white text-sm font-semibold bg-pink-500/80 px-3 py-1 rounded-full">
-              {name}
-            </span>
-          </div>
-        </div>
-        
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-pink-500 text-xs font-bold px-3 py-1 rounded-full shadow-md">
-          ⭐ Premium
+      <div className="relative h-64 bg-gradient-to-br from-rose-50 to-pink-50 overflow-hidden">
+        <img
+          src={displayImage}
+          alt={displayName}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = '/images/placeholder.jpg';
+          }}
+        />
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-rose-500 text-xs font-bold px-3 py-1 rounded-full shadow-md">
+          {colors && colors.length > 0 ? `${colors.length} Colors` : 'New'}
         </div>
       </div>
-      
+
       <div className="p-5">
-        <h3 className="text-lg font-bold text-gray-800 group-hover:text-pink-500 transition-colors">
-          {name}
+        <h3 className="text-lg font-bold text-gray-800 group-hover:text-rose-500 transition-colors">
+          {displayName}
         </h3>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-          {description}
-        </p>
-        
+        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{displayDescription}</p>
+
         <div className="flex gap-2 mt-4 flex-wrap">
-          {sizes.map(size => (
+          {displaySizes.map((size) => (
             <button
-              key={size.id}
+              key={size}
               onClick={() => setSelectedSize(size)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedSize.id === size.id
-                  ? 'bg-pink-400 text-white shadow-md'
-                  : 'bg-pink-50 text-gray-600 hover:bg-pink-100'
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                selectedSize === size
+                  ? 'bg-rose-400 text-white shadow-md'
+                  : 'bg-rose-50 text-gray-600 hover:bg-rose-100'
               }`}
             >
-              {size.label}
+              {size}
             </button>
           ))}
         </div>
-        
-        <div className="flex items-center justify-between mt-5 pt-4 border-t border-pink-100">
-          <span className="text-2xl font-bold text-pink-500">
-            ₦{selectedSize.price.toLocaleString()}
+
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-rose-100">
+          <span className="text-2xl font-bold text-rose-500">
+            ₦{displayPrice.toLocaleString()}
           </span>
-          
           <button
             onClick={handleAdd}
-            className="px-4 py-2 bg-pink-500 text-white rounded-full hover:bg-pink-600 transition-colors flex items-center gap-2 shadow-md"
+            className="px-4 py-2 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors flex items-center gap-2 shadow-md"
           >
             <Plus size={16} />
             Add to Cart

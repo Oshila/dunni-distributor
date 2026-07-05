@@ -14,15 +14,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "joiiee.treats - Premium Ice Cream",
-  description: "Crafted with love, delivered with joy.",
+  title: "Dunni the Distributor - Premium Fashion",
+  description: "Style that speaks for you. Premium fashion, bags, and accessories.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>

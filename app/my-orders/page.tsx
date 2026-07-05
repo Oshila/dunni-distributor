@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Header } from '@/app/components/Header';
 import { Footer } from '@/app/components/Footer';
 import { db } from '@/app/lib/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -26,54 +26,25 @@ export default function MyOrdersPage() {
     setSearched(true);
     
     try {
-      const searchValue = searchTerm.trim();
-      const searchLower = searchValue.toLowerCase();
+      const searchLower = searchTerm.trim().toLowerCase();
       let ordersList: any[] = [];
       
-      // Check if it looks like an order number (starts with JOI- or joi-)
-      if (searchLower.startsWith('joi-')) {
-        // Search by order number - case insensitive
-        // Since Firestore doesn't support case-insensitive string comparison,
-        // we need to fetch all orders and filter client-side
-        const q = query(collection(db, 'orders'));
-        const querySnapshot = await getDocs(q);
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.orderNumber && data.orderNumber.toLowerCase() === searchLower) {
-            ordersList.push({ id: doc.id, ...data });
-          }
-        });
-      } else {
-        // Search by email - try exact match first, then fallback
-        let q = query(collection(db, 'orders'), where('customer.email', '==', searchValue));
-        let querySnapshot = await getDocs(q);
+      // Fetch all orders and filter (case insensitive)
+      const querySnapshot = await getDocs(collection(db, 'orders'));
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const orderNumber = data.orderNumber || '';
+        const email = data.customer?.email || '';
+        const phone = data.customer?.phone || '';
         
-        if (querySnapshot.empty) {
-          // Try case insensitive by fetching all and filtering
-          const allQuery = query(collection(db, 'orders'));
-          const allSnapshot = await getDocs(allQuery);
-          allSnapshot.forEach((doc) => {
-            const data = doc.data();
-            const email = data.customer?.email || '';
-            if (email.toLowerCase() === searchLower) {
-              ordersList.push({ id: doc.id, ...data });
-            }
-          });
-        } else {
-          querySnapshot.forEach((doc) => {
-            ordersList.push({ id: doc.id, ...doc.data() });
-          });
+        if (
+          orderNumber.toLowerCase() === searchLower ||
+          email.toLowerCase() === searchLower ||
+          phone === searchTerm.trim()
+        ) {
+          ordersList.push({ id: doc.id, ...data });
         }
-        
-        // If still no results, try searching by phone
-        if (ordersList.length === 0) {
-          const phoneQuery = query(collection(db, 'orders'), where('customer.phone', '==', searchValue));
-          const phoneSnapshot = await getDocs(phoneQuery);
-          phoneSnapshot.forEach((doc) => {
-            ordersList.push({ id: doc.id, ...doc.data() });
-          });
-        }
-      }
+      });
       
       setOrders(ordersList);
     } catch (error) {
@@ -86,11 +57,11 @@ export default function MyOrdersPage() {
   return (
     <>
       <Header />
-      <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-pink-50 to-white">
+      <main className="pt-24 pb-20 min-h-screen bg-gradient-to-b from-rose-50 to-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-6">My Orders</h1>
           
-          <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100 mb-6">
+          <div className="bg-white rounded-3xl p-6 shadow-md border border-rose-100 mb-6">
             <p className="text-gray-700 font-medium mb-4">Find your orders:</p>
             <form onSubmit={searchOrders} className="flex flex-col sm:flex-row gap-3">
               <input
@@ -98,12 +69,12 @@ export default function MyOrdersPage() {
                 placeholder="Enter order number (JOI-XXXX) or email"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-pink-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:border-rose-400 focus:outline-none transition-colors text-gray-700 placeholder-gray-500"
                 required
               />
               <button
                 type="submit"
-                className="px-6 py-3 bg-pink-500 text-white font-semibold rounded-xl hover:bg-pink-600 transition-colors whitespace-nowrap"
+                className="px-6 py-3 bg-rose-500 text-white font-semibold rounded-xl hover:bg-rose-600 transition-colors whitespace-nowrap"
               >
                 Find Orders
               </button>
@@ -112,12 +83,12 @@ export default function MyOrdersPage() {
               <p className="text-red-500 text-sm mt-2">{error}</p>
             )}
             <p className="text-xs text-gray-400 mt-2">
-              💡 Search by Order Number (e.g., JOI-1234 or joi-1234) or your email address
+              💡 Search by Order Number (e.g., JOI-1234) or your email address
             </p>
           </div>
 
           {searched && (
-            <div className="bg-white rounded-3xl p-6 shadow-md border border-pink-100">
+            <div className="bg-white rounded-3xl p-6 shadow-md border border-rose-100">
               <h2 className="font-semibold text-gray-700 mb-4">
                 {loading ? 'Searching...' : `${orders.length} order(s) found`}
               </h2>
@@ -137,7 +108,7 @@ export default function MyOrdersPage() {
                     <div key={order.id} className="border border-gray-200 rounded-2xl p-4 hover:shadow-md transition-shadow">
                       <div className="flex flex-wrap justify-between items-start gap-2">
                         <div>
-                          <Link href={`/order/${order.orderNumber}`} className="font-bold text-pink-500 hover:underline">
+                          <Link href={`/order/${order.orderNumber}`} className="font-bold text-rose-500 hover:underline">
                             {order.orderNumber}
                           </Link>
                           <p className="text-sm text-gray-500">
@@ -161,7 +132,7 @@ export default function MyOrdersPage() {
                       </div>
                       <Link
                         href={`/order/${order.orderNumber}`}
-                        className="inline-block mt-3 text-sm text-pink-500 hover:text-pink-600 transition-colors font-medium"
+                        className="inline-block mt-3 text-sm text-rose-500 hover:text-rose-600 transition-colors font-medium"
                       >
                         🔍 View Order →
                       </Link>
