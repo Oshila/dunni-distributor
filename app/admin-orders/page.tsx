@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { db } from '@/app/lib/firebase';
+import { collection, getDocs, query, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { Header } from '@/app/components/Header';
 import { Footer } from '@/app/components/Footer';
-import { getOrders, updateOrderStatus } from '@/app/services/orderService';
 
 export default function AdminOrdersPage() {
   const router = useRouter();
@@ -25,17 +25,27 @@ export default function AdminOrdersPage() {
 
   const fetchOrders = async () => {
     setLoading(true);
-    const result = await getOrders();
-    if (result.success) {
-      setOrders(result.orders);
+    try {
+      const q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const ordersList: any[] = [];
+      querySnapshot.forEach((doc) => {
+        ordersList.push({ id: doc.id, ...doc.data() });
+      });
+      setOrders(ordersList);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
     }
     setLoading(false);
   };
 
   const handleStatusUpdate = async (orderId: string, status: string) => {
-    const result = await updateOrderStatus(orderId, status);
-    if (result.success) {
+    try {
+      const orderRef = doc(db, 'orders', orderId);
+      await updateDoc(orderRef, { status });
       fetchOrders();
+    } catch (error) {
+      console.error('Error updating order:', error);
     }
   };
 
